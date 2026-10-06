@@ -565,10 +565,17 @@ public extension KSOptions {
                 channelCount = minChannels
             }
             #else
-            // iOS 外放是会自动有空间音频功能，但是蓝牙耳机有可能没有空间音频功能或者把空间音频给关了，。所以还是需要处理。
-            if !isSpatialAudioEnabled {
-                channelCount = minChannels
-            }
+            // A route that reports two channels cannot carry six, whatever the system says
+            // about spatial audio. Leaving six channels in the graph only defers the fold to
+            // whatever happens next in the chain, and a fold that drops the centre channel
+            // takes dialogue with it: music and effects live in left and right, so they
+            // survive and the viewer reports "no voices".
+            //
+            // Folding here, in swresample, uses its standard downmix matrix, which includes
+            // the centre. A route that really can carry six channels, such as HDMI or a
+            // receiver over AirPlay, still gets six, because the clamp follows what the route
+            // reports rather than a fixed number.
+            channelCount = minChannels
             #endif
         } else {
             channelCount = 2
